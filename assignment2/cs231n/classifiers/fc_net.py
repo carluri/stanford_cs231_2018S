@@ -193,23 +193,26 @@ class FullyConnectedNet(object):
             b_i = 'b{}'.format(i+1)
            
 
-            #output layer
-            if i== self.num_layers - 1:
-                self.params[W_i] = np.random.normal(scale=weight_scale,size=(hidden_dims[len(hidden_dims)-1],num_classes))
+        # Output layer (without bath normalization)
+            if i == self.num_layers - 1:
+                self.params[W_i] = np.random.randn(hidden_dims[len(hidden_dims)-1],
+                    num_classes) * weight_scale
                 self.params[b_i] = np.zeros(num_classes)
-            
-            #first layer
-            elif i == 0:
-
-                self.params[W_i] = np.random.normal(scale=weight_scale,size=(input_dim,hidden_dims[0]))
-                self.params[b_i] = np.zeros(hidden_dims[0])
-            
-            # other hidden layers
+            # With batch normalization
             else:
-                self.params[W_i] = np.random.normal(scale=weight_scale,size=(hidden_dims[i-1],hidden_dims[i]))
-                self.params[b_i] = np.zeros(hidden_dims[i])             
+                # First hidden layer
+                if i == 0:
+                    self.params[W_i] = np.random.randn(input_dim, hidden_dims[0]) * weight_scale
+                    self.params[b_i] = np.zeros(hidden_dims[0])
+                # Intermediate hidden layer
+                else:
+                    self.params[W_i] = np.random.randn(hidden_dims[i-1], hidden_dims[i]) * weight_scale
+                    self.params[b_i] = np.zeros(hidden_dims[i])
 
-
+                # Batch or layer normalization layer
+                if self.normalization in ['batchnorm', 'layernorm']:
+                    self.params['gamma'+str(i+1)] = np.ones(hidden_dims[i])
+                    self.params['beta'+str(i+1)] = np.zeros(hidden_dims[i])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -232,7 +235,7 @@ class FullyConnectedNet(object):
         if self.normalization=='batchnorm':
             self.bn_params = [{'mode': 'train'} for i in range(self.num_layers - 1)]
         if self.normalization=='layernorm':
-            self.bn_params = [{} for i in range(self.num_layers - 1)]
+            self.ln_params = [{} for i in range(self.num_layers - 1)]
 
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
